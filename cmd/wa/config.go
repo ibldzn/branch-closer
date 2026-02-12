@@ -11,6 +11,7 @@ import (
 
 const (
 	defaultWebhookSecret   = "DPT@SP3n"
+	defaultCommand         = "/tutupcabang"
 	defaultAllowedDeviceID = "6281806086562@s.whatsapp.net"
 	defaultMaxBodyBytes    = int64(1 << 20) // 1MB
 
@@ -38,6 +39,7 @@ var defaultAllowedSenders = []string{
 
 type Config struct {
 	WebhookSecret   string
+	Command         string
 	AllowedDeviceID string
 	AllowedSenders  []string
 	MaxBodyBytes    int64
@@ -60,6 +62,7 @@ type Config struct {
 func loadConfig() Config {
 	return Config{
 		WebhookSecret:   envString("WA_WEBHOOK_SECRET", defaultWebhookSecret),
+		Command:         envString("WA_COMMAND", defaultCommand),
 		AllowedDeviceID: envString("WA_ALLOWED_DEVICE_ID", defaultAllowedDeviceID),
 		AllowedSenders:  defaultAllowedSenders,
 		MaxBodyBytes:    envInt64("WA_MAX_BODY_BYTES", defaultMaxBodyBytes),

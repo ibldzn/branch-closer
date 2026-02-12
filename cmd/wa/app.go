@@ -90,7 +90,7 @@ func (a *App) webhookHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	body := event.Payload["body"].(string)
-	if strings.TrimSpace(body) != "/tutupcabang" {
+	if strings.TrimSpace(body) != a.cfg.Command {
 		status = "ignored unknown command"
 		return
 	}
