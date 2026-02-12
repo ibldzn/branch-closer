@@ -89,13 +89,20 @@ func (a *App) webhookHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	body := event.Payload["body"].(string)
-	if strings.TrimSpace(body) != a.cfg.Command {
+	ctx := req.Context()
+
+	body := strings.TrimSpace(event.Payload["body"].(string))
+	if sender == a.cfg.AllowedSenders[0] && body == "ping" {
+		_ = a.sendMessage(ctx, sender, "pong")
+		status = "responded to ping"
+		return
+	}
+
+	if body != a.cfg.Command {
 		status = "ignored unknown command"
 		return
 	}
 
-	ctx := req.Context()
 	message, err := a.closeBranches(ctx)
 	if err != nil {
 		_ = a.sendMessage(ctx, sender, "Error closing branches:\n\n"+err.Error())

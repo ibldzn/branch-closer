@@ -33,7 +33,7 @@ const (
 )
 
 var defaultAllowedSenders = []string{
-	"628976458343@s.whatsapp.net",
+	"628976458343@s.whatsapp.net", // ADMIN, has to be first
 	"6282227896688@s.whatsapp.net",
 }
 
