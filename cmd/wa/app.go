@@ -240,7 +240,7 @@ func formatCloseBranchesMessage(results []branchCloseResult, finishedAt time.Tim
 		}
 	}
 
-	msg.WriteString("\n\n===\n\n_Ini adalah pesan otomatis. Terima kasih._")
+	msg.WriteString("\n\n_Terima kasih._")
 
 	return msg.String()
 }
