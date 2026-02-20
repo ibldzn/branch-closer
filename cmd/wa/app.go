@@ -238,7 +238,7 @@ func formatCloseBranchesMessage(results []branchCloseResult, finishedAt time.Tim
 				closeResultStatus(result.Err),
 			)
 		}
-		}
+	}
 
 	msg.WriteString("\n\n===\n\n_Ini adalah pesan otomatis. Terima kasih._")
 
