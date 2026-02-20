@@ -176,6 +176,11 @@ func (a *App) closeBranches(ctx context.Context) (string, error) {
 		return "", err
 	}
 
+	if len(branches) == 0 {
+		log.Print("No branches to close.")
+		return "No branches to close.", nil
+	}
+
 	msg := strings.Builder{}
 	fmt.Fprintf(&msg, "Closing %d branches:", len(branches))
 
