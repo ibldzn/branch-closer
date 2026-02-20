@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/ibldzn/branch-closer/internal/fincloud"
 )
@@ -23,6 +24,8 @@ type App struct {
 	cfg        Config
 	httpClient *http.Client
 }
+
+var wibLocation = time.FixedZone("WIB", 7*60*60)
 
 func NewApp(cfg Config) *App {
 	return &App{
@@ -176,51 +179,98 @@ func (a *App) closeBranches(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	if len(branches) == 0 {
-		log.Print("No branches to close.")
-		return "No branches to close.", nil
+	results := make([]branchCloseResult, 0, len(branches))
+	for _, branch := range branches {
+		closeErr := client.CloseBranch(ctx, branch.ID, branch.Name)
+		results = append(results, branchCloseResult{
+			Name: branch.Name,
+			ID:   branch.ID,
+			Err:  closeErr,
+		})
+	}
+
+	msg := formatCloseBranchesMessage(results, time.Now().In(wibLocation))
+	log.Print(msg)
+
+	return msg, nil
+}
+
+type branchCloseResult struct {
+	Name string
+	ID   string
+	Err  error
+}
+
+func formatCloseBranchesMessage(results []branchCloseResult, finishedAt time.Time) string {
+	successCount := 0
+	for _, result := range results {
+		if result.Err == nil {
+			successCount++
+		}
+	}
+
+	failedCount := len(results) - successCount
+
+	msg := strings.Builder{}
+	msg.WriteString("*Result Close Branch*\n")
+	fmt.Fprintf(&msg, "Tanggal: %s\n", finishedAt.Format("02-01-2006"))
+	fmt.Fprintf(&msg, "Waktu: %s WIB", finishedAt.Format("15:04:05"))
+
+	if len(results) == 0 {
+		msg.WriteString("\n\nTidak ada cabang yang perlu ditutup saat ini.")
+	} else {
+		fmt.Fprintf(
+			&msg,
+			"\n\n*Ringkasan*\n- Total cabang: %d\n- Berhasil: %d\n- Gagal: %d",
+			len(results),
+			successCount,
+			failedCount,
+		)
+
+		msg.WriteString("\n\n*Details*")
+		for i, result := range results {
+			fmt.Fprintf(
+				&msg,
+				"\n%d. %s (%s): %s",
+				i+1,
+				result.Name,
+				result.ID,
+				closeResultStatus(result.Err),
+			)
+		}
+		}
+
+	msg.WriteString("\n\n===\n\n_Ini adalah pesan otomatis. Terima kasih._")
+
+	return msg.String()
+}
+
+func closeResultStatus(err error) string {
+	if err == nil {
+		return "berhasil"
+	}
+
+	var apiErr *fincloud.APIError
+	if !errors.As(err, &apiErr) {
+		return fmt.Sprintf("gagal (%v)", err)
+	}
+
+	if apiErr.Detail == nil {
+		return "gagal"
 	}
 
 	msg := strings.Builder{}
-	fmt.Fprintf(&msg, "Closing %d branches:", len(branches))
-
-	for _, branch := range branches {
-		fmt.Fprintf(&msg, "\n- %s (%s): ", branch.Name, branch.ID)
-
-		if err := client.CloseBranch(ctx, branch.ID, branch.Name); err != nil {
-			appendCloseError(&msg, err)
-			continue
-		}
-
-		msg.WriteString("success")
-	}
-
-	log.Print(msg.String())
-
-	return msg.String(), nil
-}
-
-func appendCloseError(msg *strings.Builder, err error) {
-	var apiErr *fincloud.APIError
-	if !errors.As(err, &apiErr) {
-		fmt.Fprintf(msg, "failed (%v)", err)
-		return
-	}
-
-	msg.WriteString("failed")
-	if apiErr.Detail == nil {
-		return
-	}
-
-	msg.WriteString(" (")
+	msg.WriteString("gagal (")
 	details := slices.Collect(maps.Values(apiErr.Detail))
 	for i, detail := range details {
 		if i > 0 {
 			msg.WriteString(", ")
 		}
-		fmt.Fprintf(msg, "%v", detail)
+		fmt.Fprintf(&msg, "%v", detail)
 	}
 	msg.WriteString(")")
+
+	return msg.String()
 }
 
 type messageRequest struct {
