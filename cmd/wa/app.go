@@ -91,6 +91,11 @@ func (a *App) webhookHandler(res http.ResponseWriter, req *http.Request) {
 
 	ctx := req.Context()
 
+	_ = a.sendTypingIndicator(ctx, sender, true)
+	defer func() {
+		_ = a.sendTypingIndicator(ctx, sender, false)
+	}()
+
 	body := strings.TrimSpace(event.Payload["body"].(string))
 	if sender == a.cfg.AllowedSenders[0] && body == "ping" {
 		_ = a.sendMessage(ctx, sender, "pong")
@@ -231,6 +236,52 @@ func (a *App) sendMessage(ctx context.Context, to, message string) error {
 		ctx,
 		http.MethodPost,
 		a.cfg.MessageEndpoint,
+		bytes.NewReader(payload),
+	)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Device-Id", a.cfg.MessageDeviceID)
+
+	resp, err := a.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+type typingIndicatorRequest struct {
+	Phone  string `json:"phone"`
+	Action string `json:"action"` // "start" atau "stop"
+}
+
+func (a *App) sendTypingIndicator(ctx context.Context, to string, state bool) error {
+	action := "stop"
+	if state {
+		action = "start"
+	}
+
+	payload, err := json.Marshal(typingIndicatorRequest{
+		Phone:  to,
+		Action: action,
+	})
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		a.cfg.TypingEndpoint,
 		bytes.NewReader(payload),
 	)
 	if err != nil {

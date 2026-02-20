@@ -22,6 +22,7 @@ const (
 	defaultFincloudRole     = "R-0040"
 
 	defaultMessageEndpoint = "http://10.66.77.50:3030/send/message"
+	defaultTypingEndpoint  = "http://10.66.77.50:3030/send/chat-presence"
 	defaultMessageDeviceID = "ccs"
 
 	defaultServerAddr      = ":8989"
@@ -48,6 +49,7 @@ type Config struct {
 	FincloudCredential fincloud.Credentials
 
 	MessageEndpoint string
+	TypingEndpoint  string
 	MessageDeviceID string
 	MessagePhone    string
 
@@ -76,6 +78,7 @@ func loadConfig() Config {
 		},
 
 		MessageEndpoint: envString("WA_MESSAGE_ENDPOINT", defaultMessageEndpoint),
+		TypingEndpoint:  envString("WA_TYPING_ENDPOINT", defaultTypingEndpoint),
 		MessageDeviceID: envString("WA_MESSAGE_DEVICE_ID", defaultMessageDeviceID),
 
 		ServerAddr:      envString("WA_SERVER_ADDR", defaultServerAddr),
